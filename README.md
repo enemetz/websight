@@ -1,2 +1,2 @@
 # Linker
-App that recognizes URL's
+App that recognizes URL's with the camera
