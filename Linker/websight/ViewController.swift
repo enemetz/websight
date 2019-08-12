@@ -39,8 +39,6 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     //Sets up the camera and preview layer
     //MARK: setupCamera
     func setupCamera() {
-       //let captureSession = AVCaptureSession()
-    
         guard let captureDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: AVMediaType.video, position: .back) else {return}
         
         guard let input = try? AVCaptureDeviceInput(device: captureDevice) else {return}
@@ -49,12 +47,12 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             captureSession.sessionPreset = AVCaptureSession.Preset.hd4K3840x2160
             bufferAspectRatio = 3840.0 / 2160.0
         } else {
-                    captureSession.sessionPreset = AVCaptureSession.Preset.hd1920x1080
-                    bufferAspectRatio = 1920.0 / 1080.0
+                captureSession.sessionPreset = AVCaptureSession.Preset.hd1920x1080
+                bufferAspectRatio = 1920.0 / 1080.0
         }
         do {
             try captureDevice.lockForConfiguration()
-            captureDevice.videoZoomFactor = 2
+            captureDevice.videoZoomFactor = 1
             captureDevice.autoFocusRangeRestriction = .near
             captureDevice.unlockForConfiguration()
         } catch {
@@ -64,27 +62,42 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         
         //let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        view.layer.addSublayer(previewLayer)
+        view.layer.insertSublayer(previewLayer, at: 0)
         previewLayer.frame = view.layer.bounds
         let dataOutput = AVCaptureVideoDataOutput()
         dataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
         captureSession.addOutput(dataOutput)
         dataOutput.alwaysDiscardsLateVideoFrames = true
         previewLayer.videoGravity = .resizeAspectFill
+        print("\(regionOfInterest)")
         
-
+        calculateRegionOfInterest()
+        let parentWidth = view.bounds.size.width
+        let parentHeight = view.bounds.size.height
+        var convertRect = regionOfInterest
+        convertRect.origin.x *= parentWidth
+        convertRect.origin.y *= parentHeight
+        convertRect.size.width *= parentWidth
+        convertRect.size.height *= parentHeight
         
-        //layer.path = UIBezierPath(rect: CGRect(x: 0.09999999999999998, y: 0.4578125, width: 0.8,height:  0.084375)).cgPath
-        //layer.cornerRadius = 5
-        //layer.fillColor = UIColor.systemBlue.cgColor
-        //layer.borderWidth = 3
-        //view.layer.insertSublayer(layer, above: previewLayer)
+        let roiView = UIView(frame: convertRect)
+        roiView.layer.borderWidth = 3
+        roiView.layer.borderColor = UIColor.systemBlue.cgColor
+        view.addSubview(roiView)
+        view.bringSubviewToFront(roiView)
         
+        /*layer.borderWidth = 3
+        layer.backgroundColor = UIColor.clear.cgColor
+        layer.borderColor = UIColor.systemBlue.cgColor
+        layer.path = UIBezierPath(roundedRect: CGRect(x: 64, y: 64, width: 500, height: 300), cornerRadius: 10).cgPath
+        view.layer.insertSublayer(layer, above: previewLayer)*/
         instructionLabel.text = "Aim the camera at a URL"
         
         captureSession.startRunning()
     }
     
+    
+    //MARK: Region of interest
     func calculateRegionOfInterest() {
             // In landscape orientation the desired ROI is specified as the ratio of
             // buffer width to height. When the UI is rotated to portrait, keep the
@@ -104,7 +117,6 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             // Make it centered.
             regionOfInterest.origin = CGPoint(x: (1 - size.width) / 2, y: (1 - size.height) / 2)
             regionOfInterest.size = size
-            //let roiPath = CGPath(rect: regionOfInterest, transform: nil)
             print("\(regionOfInterest)")
             // ROI changed, update transform.
             setupOrientationAndTransform()
@@ -114,9 +126,11 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             DispatchQueue.main.async {
                 // Wait for the next run cycle before updating the cutout. This
                 // ensures that the preview layer already has its new orientation.
-                //layer.path = regionOfInterest
             }
         }
+    
+
+    //MARK: Orientation
     func setupOrientationAndTransform() {
         // Recalculate the affine transform between Vision coordinates and AVF coordinates.
         
@@ -143,14 +157,12 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         // Full Vision ROI to AVF transform.
         visionToAVFTransform = roiToGlobalTransform.concatenating(bottomToTopTransform).concatenating(uiRotationTransform)
     }
-    
+    //MARK: Capture Output
     //Capures every frame and does a text recognition request
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         //print("Hello ", Date())
         if let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
-                    
                     request.recognitionLevel = .fast
-                  
                     request.usesLanguageCorrection = false
                     // Only run on the region of interest for maximum speed.
                     request.regionOfInterest = regionOfInterest
@@ -162,7 +174,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                     }
                 }
     }
-    
+    //MARK: Text Detection
     //Handles detected text
     func detectedTextHandler(request: VNRequest?, error: Error?) {
       var urls = [String]()
@@ -170,15 +182,11 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                     print("No text was found")
                     return
                 }
-
-        
         
         let maxCandidate = 1
         for result in results {
             //Iterates through results and if the result matches regex then opens
             //matched result in safari
-            
-            
             if let observation = result as? VNRecognizedTextObservation {
                 for text in observation.topCandidates(maxCandidate) {
                     let range = NSRange(location: 0, length: text.string.utf16.count)
@@ -189,13 +197,12 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                             if let url = URL(string: sureURL) {
                                     DispatchQueue.main.async {UIApplication.shared.open(url)
                                 }
-                                                        
                             }
                         }
-                        
-                        
                             numberTracker.reset(string: sureURL)
                     }
+                    
+                    //print(observation.boundingBox)
                     if(regex.firstMatch(in: text.string, options: [], range: range) != nil) {
                         urls.append(text.string)
                         //if let url = URL(string: text.string) {
@@ -206,15 +213,13 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                     } else {
                         print("Detected: ", text.string)
                     }
-                    
-                  
                 }
             }
         }
         numberTracker.logFrame(strings: urls)
     }
     
-    
+    //MARK: ViewDidLoad
     override func viewDidLoad() {
         UIDevice.current.setValue(UIInterfaceOrientation.portrait.rawValue, forKey: "orientation")
         request = VNRecognizeTextRequest(completionHandler: detectedTextHandler)
@@ -233,10 +238,31 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         request.regionOfInterest = regionOfInterest
         
         setupCamera()
+        //calculateRegionOfInterest()
+        
+        
+        
+    }
+    
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+
+        // Only change the current orientation if the new one is landscape or
+        // portrait. You can't really do anything about flat or unknown.
+        let deviceOrientation = UIDevice.current.orientation
+        if deviceOrientation.isPortrait || deviceOrientation.isLandscape {
+            currentOrientation = deviceOrientation
+        }
+        
+        // Handle device orientation in the preview layer.
+        if let videoPreviewLayerConnection = previewLayer.connection {
+            if let newVideoOrientation = AVCaptureVideoOrientation(deviceOrientation: deviceOrientation) {
+                videoPreviewLayerConnection.videoOrientation = newVideoOrientation
+            }
+        }
+        
+        // Orientation changed: figure out new region of interest (ROI).
         calculateRegionOfInterest()
-        
-        
-        
     }
     
     override func viewWillAppear(_ animated: Bool) {
