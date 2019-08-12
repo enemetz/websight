@@ -29,10 +29,11 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     var roiToGlobalTransform = CGAffineTransform.identity
     var visionToAVFTransform = CGAffineTransform.identity
     var bottomToTopTransform = CGAffineTransform(scaleX: 1, y: -1).translatedBy(x: 0, y: -1)
-    
+    let layer = CAShapeLayer()
     //Tracks seen items
     let numberTracker = StringTracker()
     let captureSession = AVCaptureSession()
+    var previewLayer = AVCaptureVideoPreviewLayer()
     
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask { return .portrait }
     //Sets up the camera and preview layer
@@ -61,21 +62,23 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                 return
         }
         
-        let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+        //let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+        previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         view.layer.addSublayer(previewLayer)
         previewLayer.frame = view.layer.bounds
         let dataOutput = AVCaptureVideoDataOutput()
         dataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
         captureSession.addOutput(dataOutput)
+        dataOutput.alwaysDiscardsLateVideoFrames = true
         previewLayer.videoGravity = .resizeAspectFill
         
 
-        let layer = CAShapeLayer()
-        layer.path = UIBezierPath(rect: CGRect(x: 64, y: 500, width: 160, height: 300)).cgPath
-        layer.cornerRadius = 5
-        layer.borderColor = UIColor.red.cgColor
-        layer.borderWidth = 3
-        view.layer.insertSublayer(layer, above: previewLayer)
+        
+        //layer.path = UIBezierPath(rect: CGRect(x: 0.09999999999999998, y: 0.4578125, width: 0.8,height:  0.084375)).cgPath
+        //layer.cornerRadius = 5
+        //layer.fillColor = UIColor.systemBlue.cgColor
+        //layer.borderWidth = 3
+        //view.layer.insertSublayer(layer, above: previewLayer)
         
         instructionLabel.text = "Aim the camera at a URL"
         
@@ -101,15 +104,17 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             // Make it centered.
             regionOfInterest.origin = CGPoint(x: (1 - size.width) / 2, y: (1 - size.height) / 2)
             regionOfInterest.size = size
-            
+            //let roiPath = CGPath(rect: regionOfInterest, transform: nil)
+            print("\(regionOfInterest)")
             // ROI changed, update transform.
-            //setupOrientationAndTransform()
+            setupOrientationAndTransform()
+            
             
             // Update the cutout to match the new ROI.
             DispatchQueue.main.async {
                 // Wait for the next run cycle before updating the cutout. This
                 // ensures that the preview layer already has its new orientation.
-                //self.updateCutout()
+                //layer.path = regionOfInterest
             }
         }
     func setupOrientationAndTransform() {
@@ -228,16 +233,18 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         request.regionOfInterest = regionOfInterest
         
         setupCamera()
-        //calculateRegionOfInterest()
+        calculateRegionOfInterest()
+        
+        
         
     }
     
     override func viewWillAppear(_ animated: Bool) {
-        AppDelegate.AppUtility.lockOrientation(UIInterfaceOrientationMask.portrait, andRotateTo: UIInterfaceOrientation.portrait)
+        //AppDelegate.AppUtility.lockOrientation(UIInterfaceOrientationMask.portrait, andRotateTo: UIInterfaceOrientation.portrait)
             }
     
     override func viewWillDisappear(_ animated: Bool) {
-            AppDelegate.AppUtility.lockOrientation(UIInterfaceOrientationMask.all)
+            //AppDelegate.AppUtility.lockOrientation(UIInterfaceOrientationMask.all)
 
         }
 }

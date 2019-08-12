@@ -16,7 +16,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return self.orientationLock
     }
     
-    struct AppUtility {
+    /*struct AppUtility {
         static func lockOrientation(_ orientation: UIInterfaceOrientationMask) {
             if let delegate = UIApplication.shared.delegate as? AppDelegate {
                 delegate.orientationLock = orientation
@@ -27,7 +27,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             self.lockOrientation(orientation)
             UIDevice.current.setValue(rotateOrientation.rawValue, forKey: "orientation")
         }
-    }
+    }*/
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
