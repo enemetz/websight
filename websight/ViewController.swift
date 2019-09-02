@@ -10,6 +10,8 @@ import UIKit
 import Vision
 import AVFoundation
 import SafariServices
+import CoreLocation
+import MapKit
 
 class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
     var previewView: PreviewView!
@@ -123,7 +125,6 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             }
         }
     
-
     //MARK: Orientation
     func setupOrientationAndTransform() {
         // Recalculate the affine transform between Vision coordinates and AVF coordinates.
@@ -168,10 +169,198 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                     }
                 }
     }
-    //MARK: Text Detection
+    
+    func emailAlert(sureURL: String) {
+       let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+        
+        DispatchQueue.main.async {
+            if let url = URL(string: "mailto:" + sureURL) {
+                self.captureSession.stopRunning()
+                DispatchQueue.main.async {UIApplication.shared.open(url)
+                }
+                
+            }
+            self.captureSession.startRunning()
+            
+        }
+    }
+    //MARK: Maps ActionSheet
+    func mapsAlert(sureURL: String) {
+        print("seen your house")
+        
+        let geocoder = CLGeocoder()
+        let locationString = sureURL
+        let pasteBoard = UIPasteboard.general
+        
+        DispatchQueue.main.async {
+            
+            let mapSheet = UIAlertController(title: "Address Detected", message: "Would you like to copy the address, Get directions to \(sureURL) in maps, or share?", preferredStyle: .actionSheet)
+            
+            let copyAction = UIAlertAction(title: "Copy to clipboard", style: .default) { (UIAlertAction) in
+                
+                pasteBoard.string = sureURL
+                let vibration = UINotificationFeedbackGenerator()
+                vibration.notificationOccurred(.success)
+                self.captureSession.startRunning()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                    self.instructionLabel.textColor = .white
+                    self.instructionLabel.text = "Aim camera at a URL, email, address, or phone number"
+                }
+                //self.instructionLabel.text = "Copied address"
+            }
+            
+            let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: { (UIAlertAction) in
+                self.captureSession.startRunning()
+            })
+            
+            let shareAction = UIAlertAction(title: "Share", style: .default) { (UIAlertAction) in
+                let items = [sureURL]
+                let ac = UIActivityViewController(activityItems: items, applicationActivities: nil)
+                               self.captureSession.stopRunning()
+                               self.present(ac, animated: true)
+                               //When share sheet is presented, capture session stops, and the completion handler starts it when share sheet is hidden
+                               ac.completionWithItemsHandler = { activity, success, items, error in
+                                   self.captureSession.startRunning()
+                               }
+            }
+            
+            let mapAction = UIAlertAction(title: "Get Directions in Maps", style: .default) { (UIAlertAction) in
+                geocoder.geocodeAddressString(locationString) { (placemarks, error) in
+                    if let error = error {
+                        print(error.localizedDescription)
+                    } else {
+                        if let location = placemarks?.first?.location {
+                           
+                            let coordinate = CLLocationCoordinate2DMake(location.coordinate.latitude,location.coordinate.longitude)
+                            let mapItem = MKMapItem(placemark: MKPlacemark(coordinate: coordinate, addressDictionary:nil))
+                            mapItem.name = "Target location"
+                            mapItem.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey : MKLaunchOptionsDirectionsModeDriving])
+                            /*if let url = URL(string: urlString) {
+                                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                            } */
+                        }
+                    }
+                }
+                self.captureSession.startRunning()
+            }
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
+            mapSheet.addAction(copyAction)
+            mapSheet.addAction(mapAction)
+            mapSheet.addAction(shareAction)
+            mapSheet.addAction(cancelAction)
+            self.captureSession.stopRunning()
+            self.present(mapSheet, animated: true)
+           
+        }
+    }
+    
+    //MARK: CallAlert
     //Handles detected text
+    func callAlert(sureURL: String) {
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+        
+        DispatchQueue.main.async {
+            if let url = URL(string: "tel://" + sureURL) {
+                self.captureSession.stopRunning()
+                DispatchQueue.main.async {UIApplication.shared.open(url)
+                }
+                
+            }
+            self.captureSession.startRunning()
+            
+        }
+    }
+    //MARK: URL Popup
+    func alertPopUp(sureURL: String) {
+        //Medium haptic when popup occurs
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+        //For writing to clipboard
+        let pasteBoard = UIPasteboard.general
+        DispatchQueue.main.async {
+            self.captureSession.stopRunning()
+            let alert = UIAlertController(title: "Website found", message: "Would you like to copy URL, go to \(sureURL), or share?", preferredStyle: .actionSheet)
+            self.present(alert, animated: true)
+            let copyAction = UIAlertAction(title: "Copy to clipboard", style: .default, handler: { (UIAlertAction) in
+            
+                pasteBoard.string = sureURL
+                self.instructionLabel.textAlignment = .center
+                self.instructionLabel.textColor = UIColor.systemGreen
+                self.instructionLabel.text = "Copied URL"
+                //Haptic when link is copied
+                let vibration = UINotificationFeedbackGenerator()
+                vibration.notificationOccurred(.success)
+                self.captureSession.startRunning()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                    self.instructionLabel.textColor = .white
+                    self.instructionLabel.text = "Aim camera at a URL"
+                }
+            })
+            //comfigures symbol size
+            let config = UIImage.SymbolConfiguration(weight: .semibold)
+            let clipboard = UIImage(systemName: "doc.on.doc", withConfiguration: config)
+            let safari = UIImage(systemName: "safari", withConfiguration: config)
+            //adds the symbol to copy
+            copyAction.setValue(clipboard?.withRenderingMode(.automatic), forKey: "image")
+            copyAction.setValue(kCMTextMarkupAlignmentType_Left, forKey: "titleTextAlignment")
+        
+            //Site action button
+            let siteAction = UIAlertAction(title: "Open link in Safari", style: .default, handler: { (UIAlertAction) in
+                
+                if(sureURL.hasPrefix("http://") || sureURL.hasPrefix("https://")) {
+                    if let url = URL(string: sureURL) {
+                            DispatchQueue.main.async {UIApplication.shared.open(url)
+                        }
+                    }
+                }else if let url = URL(string: "https://" + sureURL) {
+                        print("in second loop")
+                    DispatchQueue.main.async {UIApplication.shared.open(url)
+                    }
+                }
+                self.captureSession.startRunning()
+            })
+            siteAction.setValue(safari?.withRenderingMode(.automatic), forKey: "image")
+            siteAction.setValue(kCMTextMarkupAlignmentType_Left, forKey: "titleTextAlignment")
+            let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: { (UIAlertAction) in
+                self.captureSession.startRunning()
+            })
+            
+            let shareAction = UIAlertAction(title: "Share", style: .default, handler: { (UIAlertAction) in
+                var items: [URL]
+                if(!sureURL.hasPrefix("http://") || !sureURL.hasPrefix("https://")) {
+                    let newURL = "https://" + sureURL
+                    items = [URL(string: newURL)!]
+                } else {
+                    items = [URL(string: sureURL)!]
+                }
+                //share sheet controller
+                let ac = UIActivityViewController(activityItems: items, applicationActivities: nil)
+                self.captureSession.stopRunning()
+                self.present(ac, animated: true)
+                //When share sheet is presented, capture session stops, and the completion handler starts it when share sheet is hidden
+                ac.completionWithItemsHandler = { activity, success, items, error in
+                    self.captureSession.startRunning()
+                }
+                //self.captureSession.startRunning()
+            })
+        
+            let shareIcon = UIImage(systemName: "square.and.arrow.up", withConfiguration: config)
+            shareAction.setValue(shareIcon?.withRenderingMode(.automatic), forKey: "image")
+            shareAction.setValue(kCMTextMarkupAlignmentType_Left, forKey: "titleTextAlignment")
+            
+            alert.addAction(copyAction)
+            alert.addAction(siteAction)
+            alert.addAction(shareAction)
+            alert.addAction(cancelAction)
+            
+        }
+    }
+    //MARK: Text Detection
     func detectedTextHandler(request: VNRequest?, error: Error?) {
-      var urls = [String]()
+        var urls = [String]()
         guard let results = request!.results as? [VNRecognizedTextObservation] else {
                     print("No text was found")
                     return
@@ -185,40 +374,47 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                 for text in observation.topCandidates(maxCandidate) {
                     let range = NSRange(location: 0, length: text.string.utf16.count)
                     let regex = try! NSRegularExpression(pattern: "((?:http|https)://)?(?:www\\.)?[\\w\\d\\-_]+\\.\\w{2,3}(\\.\\w{2})?(/(?<=/)(?:[\\w\\d\\-./_]+)?)?")
+                    
                     //Old regex: (?i)https?://(?:www\\.)?\\S+(?:/|\\b)
                     //If the same URL is seen multiple times, it checks if the URL
                     //Matches the Regular Expression, if it does, opens detected URL in safari
                     if let sureURL = numberTracker.getStableString() {
+                        if(sureURL.isValidAddress) {
+                            print("Address")
+                            mapsAlert(sureURL: sureURL)
+                        }
+                        
+                        if(sureURL.isValidEmail) {
+                            emailAlert(sureURL: sureURL)
+                        }
+                        
+                        if(sureURL.isValidPhone) {
+                            print("Found Phone Number")
+                            callAlert(sureURL: sureURL)
+                        }
+                        
                         if(sureURL.isValidURL){
                             if(sureURL.hasPrefix("http://")) {
-                                if let url = URL(string: sureURL) {
-                                        DispatchQueue.main.async {UIApplication.shared.open(url)
-                                    }
-                                }
+                                alertPopUp(sureURL: sureURL)
                             } else if(sureURL.hasPrefix("https://")) {
-                                if let url = URL(string: sureURL) {
-                                        DispatchQueue.main.async {UIApplication.shared.open(url)
-                                    }
-                                }
+                                alertPopUp(sureURL: sureURL)
+                                
                             } else {
-                                if let url = URL(string: "http://" + sureURL) {
-                                        DispatchQueue.main.async {UIApplication.shared.open(url)
-                                    }
-                                }
+                                alertPopUp(sureURL: sureURL)
                             }
                             
                             print("Valid url: \(sureURL)")
                         }
-                       /* if(regex.firstMatch(in: text.string, options: [], range: range) != nil) {
-                            if let url = URL(string: sureURL) {
-                                    DispatchQueue.main.async {UIApplication.shared.open(url)
-                                }
-                            }
-                        }*/
                             numberTracker.reset(string: sureURL)
                     }
                     
                     //print(observation.boundingBox)
+                    if(text.string.isValidAddress) {
+                        urls.append(text.string)
+                    }
+                    if(text.string.isValidPhone) {
+                        urls.append(text.string)
+                    }
                     if(regex.firstMatch(in: text.string, options: [], range: range) != nil) {
                         urls.append(text.string)
                         //if let url = URL(string: text.string) {
@@ -303,7 +499,10 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         
         //User directions label setup and constraints
         view.addSubview(instructionLabel)
+        instructionLabel.textAlignment = .center
         instructionLabel.text = "Aim the camera at a URL"
+        instructionLabel.textColor = .white
+        instructionLabel.font = .systemFont(ofSize: 18)
         instructionLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
         instructionLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -350).isActive = true
         instructionLabel.widthAnchor.constraint(equalToConstant: 200).isActive = true
