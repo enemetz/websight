@@ -40,7 +40,17 @@ extension String {
     }
     
     var isValidPhone: Bool {
-       let regularExpressionForPhone = "^\\d{3}-\\d{3}-\\d{4}$"
+       let regularExpressionForPhone = #"""
+       (?x)                    # Verbose regex, allows comments
+       (?:\+1-?)?                # Potential international prefix, may have -
+       [(]?                    # Potential opening (
+       \b(\w{3})                # Capture xxx
+       [)]?                    # Potential closing )
+       [\ -./]?                # Potential separator
+       (\w{3})                    # Capture xxx
+       [\ -./]?                # Potential separator
+       (\w{4})\b                # Capture xxxx
+       """#
        let testPhone = NSPredicate(format:"SELF MATCHES %@", regularExpressionForPhone)
        return testPhone.evaluate(with: self)
     }
