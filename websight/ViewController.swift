@@ -370,8 +370,11 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     }
     
     //MARK: CallAlert
+    //MARK: Add actionsheet
     //Handles detected text
+    //Open actionsheet then if call option is selected, then open URL
     func callAlert(sureURL: String) {
+        //Get rid of tell:// from function call
         if let url = URL(string: "tel://" + sureURL) {
             DispatchQueue.main.async {
                 self.captureSession.stopRunning()
@@ -577,6 +580,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         }
         }
     }
+    //Test
     //MARK: Text Detection
     func detectedTextHandler(request: VNRequest?, error: Error?) {
         var urls = [String]()
@@ -721,6 +725,12 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         instructionLabel.textAlignment = .center
         instructionLabel.numberOfLines = 0
         instructionLabel.lineBreakMode = .byWordWrapping
+        instructionLabel.shadowColor = .black
+        instructionLabel.layer.shadowColor = UIColor.black.cgColor
+        instructionLabel.layer.shadowRadius = 3.0
+        instructionLabel.layer.shadowOpacity = 1.0
+        instructionLabel.layer.shadowOffset = CGSize(width: 4, height: 4)
+        instructionLabel.layer.masksToBounds = false
         instructionLabel.text = "Aim the camera at a URL, email, phone number, or address."
         instructionLabel.textColor = .white
         instructionLabel.font = .systemFont(ofSize: 18)
