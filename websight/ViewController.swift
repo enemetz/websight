@@ -20,7 +20,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     //Text recognition request
     var request: VNRecognizeTextRequest!
     //Region of interest initial; Gets changed later
-    var regionOfInterest = CGRect(x: 0, y: 0, width: 1, height: 1)
+    var regionOfInterest = CGRect(x: 0, y: 0, width: 1 ,height: 1)
     var textOrientation = CGImagePropertyOrientation.up
     var maskLayer = CAShapeLayer()
     let instructionLabel = UILabel()
@@ -87,7 +87,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         convertRect.size.height *= parentHeight
         
         roiView = UIView(frame: convertRect)
-        roiView.layer.borderWidth = 3
+        roiView.layer.borderWidth = 2.5
         roiView.layer.cornerRadius = 10
         roiView.layer.borderColor = UIColor.systemBlue.cgColor
         view.addSubview(roiView)
@@ -103,17 +103,17 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             // buffer width to height. When the UI is rotated to portrait, keep the
             // vertical size the same (in buffer pixels). Also try to keep the
             // horizontal size the same up to a maximum ratio.
-            let desiredHeightRatio = 0.15
-            let desiredWidthRatio = 0.6
-            let maxPortraitWidth = 0.8
+            let desiredHeightRatio = 0.10
+            let desiredWidthRatio = 0.4
+            let maxPortraitWidth = 0.7
             
             // Figure out size of ROI.
             let size: CGSize
-            if currentOrientation.isPortrait || currentOrientation == .unknown {
-                size = CGSize(width: min(desiredWidthRatio * bufferAspectRatio, maxPortraitWidth), height: desiredHeightRatio / bufferAspectRatio)
-            } else {
-                size = CGSize(width: desiredWidthRatio, height: desiredHeightRatio)
-            }
+            //if currentOrientation.isPortrait || currentOrientation == .unknown {
+            size = CGSize(width: min(desiredWidthRatio * bufferAspectRatio, maxPortraitWidth), height: desiredHeightRatio / bufferAspectRatio)
+            //} else {
+                //size = CGSize(width: desiredWidthRatio, height: desiredHeightRatio)
+            //}
             // Make it centered.
             regionOfInterest.origin = CGPoint(x: (1 - size.width) / 2, y: (1 - size.height) / 2)
             regionOfInterest.size = size
@@ -122,10 +122,10 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             setupOrientationAndTransform()
             
             // Update the cutout to match the new ROI.
-            DispatchQueue.main.async {
+            //DispatchQueue.main.async {
                 // Wait for the next run cycle before updating the cutout. This
                 // ensures that the preview layer already has its new orientation.
-            }
+            //}
         }
     
     //MARK: Orientation
@@ -174,6 +174,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     }
     //MARK: Email ActionSheet
     func emailAlert(sureURL: String) {
+        successfulScan()
         let generator = UIImpactFeedbackGenerator(style: .medium)
         let pasteboard = UIPasteboard()
         //self.captureSession.stopRunning()
@@ -275,6 +276,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     
     //MARK: Maps ActionSheet
     func mapsAlert(sureURL: String) {
+        successfulScan()
         print("seen your house")
         var mapSheet: UIAlertController!
         let geocoder = CLGeocoder()
@@ -375,69 +377,45 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     //Open actionsheet then if call option is selected, then open URL
     func callAlert(sureURL: String) {
         //Get rid of tell:// from function call
-        if let url = URL(string: "tel://" + sureURL) {
-            DispatchQueue.main.async {
-                self.captureSession.stopRunning()
-                UIApplication.shared.open(url)
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6, execute: {
-                self.captureSession.startRunning()
-            })
-        }
-        /*let pasteBoard = UIPasteboard.general
-        let actionSheet = UIAlertController(title: "Phone number detected", message: "Would you like to copy number, message, or call? ", preferredStyle: .actionSheet)
-        
-        let copyAction = UIAlertAction(title: "Copy to clipboard", style: .default) { (UIAlertAction) in
-            
-            pasteBoard.string = sureURL
-            let vibration = UINotificationFeedbackGenerator()
-            vibration.notificationOccurred(.success)
-            self.captureSession.startRunning()
-            self.instructionLabel.text = "Copied address"
-            self.instructionLabel.textColor = .systemGreen
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                self.instructionLabel.textColor = .white
-                self.instructionLabel.text = "Aim camera at a URL, email, address, or phone number"
-            }
-        }
-        
-        //TODO: Test texting
-        let textAction = UIAlertAction(title: "Copy", style: .default) { (UIAlertAction) in
-            if let url = URL(string: "sms+" + sureURL) {
-                DispatchQueue.main.async {
-                    UIApplication.shared.open(url)
-                }
-            }
-        }
-        
-        let callAction = UIAlertAction(title: "Call", style: .default) { (UIAlertAction) in
-            if let url = URL(string: "tel://" + sureURL) {
-                DispatchQueue.main.async {
-                    self.captureSession.stopRunning()
-                    UIApplication.shared.open(url)
-                }
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6, execute: {
-                self.captureSession.startRunning()
-            })
-        }
-        
-        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { (UIAlertAction) in
-            self.captureSession.startRunning()
-        }
-        
-        actionSheet.addAction(copyAction)
-        actionSheet.addAction(textAction)
-        actionSheet.addAction(callAction)
-        actionSheet.addAction(cancelAction)
-        self.present(actionSheet, animated: true)*/
+        successfulScan()
+        var phoneNum = ""
         let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
+        for x in sureURL {
+            if x.isNumber {
+                phoneNum += String(x)
+            }
+        }
+        
+        if let url = URL(string: "tel://" + phoneNum) {
+            self.captureSession.stopRunning()
+            DispatchQueue.main.async {
+                UIApplication.shared.open(url)
+                generator.impactOccurred()
+            }
+            let notificationCenter = NotificationCenter.default
+            notificationCenter.addObserver(self, selector: #selector(appMovedToBackground), name: UIApplication.didBecomeActiveNotification, object: nil)
             
+            //DispatchQueue.main.asyncAfter(deadline: .now() + 1.6, execute: {
+                //self.captureSession.startRunning()
+            //})
+        }
+        
+        
+            
+    }
+    //MARK: Sucessful scan
+    func successfulScan() {
+        DispatchQueue.main.async {
+            self.roiView.layer.borderColor = UIColor.systemGreen.cgColor
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            self.roiView.layer.borderColor = UIColor.systemBlue.cgColor
+        }
     }
     
     //MARK: URL Popup
     func alertPopUp(sureURL: String) {
+        successfulScan()
         //Medium haptic when popup occurs
         let generator = UIImpactFeedbackGenerator(style: .medium)
         //For writing to clipboard
@@ -697,7 +675,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         //Sets the text request settings
         request.recognitionLevel = VNRequestTextRecognitionLevel.fast
         request.revision = VNRecognizeTextRequestRevision1
-        request.usesLanguageCorrection = false
+        request.usesLanguageCorrection = true
         request.regionOfInterest = regionOfInterest
         
         //Sets up camera after vision requests
@@ -712,7 +690,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         zoomButton.layer.borderColor = UIColor.white.cgColor
         zoomButton.clipsToBounds = true
         zoomButton.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
-        zoomButton.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: 350).isActive = true
+        zoomButton.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: 300).isActive = true
         zoomButton.widthAnchor.constraint(equalToConstant: 50).isActive = true
         zoomButton.heightAnchor.constraint(equalToConstant: 50).isActive = true
         zoomButton.layer.cornerRadius = 25
@@ -735,12 +713,20 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         instructionLabel.textColor = .white
         instructionLabel.font = .systemFont(ofSize: 18)
         instructionLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor).isActive = true
-        instructionLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -325).isActive = true
+        instructionLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -275).isActive = true
         instructionLabel.widthAnchor.constraint(equalToConstant: 200).isActive = true
         instructionLabel.heightAnchor.constraint(equalToConstant: 150).isActive = true
         instructionLabel.translatesAutoresizingMaskIntoConstraints = false
         
+        
+        
     }
+    
+    @objc func appMovedToBackground() {
+        print("App moved to background!")
+        captureSession.startRunning()
+    }
+    
     //MARK: ViewWillTransition
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
