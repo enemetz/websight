@@ -66,7 +66,6 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
                 return
         }
         
-        //let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
         view.layer.insertSublayer(previewLayer, at: 0)
         previewLayer.frame = view.layer.bounds
@@ -78,20 +77,29 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         print("\(regionOfInterest)")
         
         calculateRegionOfInterest()
-        let parentWidth = view.bounds.size.width
-        let parentHeight = view.bounds.size.height
-        var convertRect = regionOfInterest
-        convertRect.origin.x *= parentWidth
-        convertRect.origin.y *= parentHeight
-        convertRect.size.width *= parentWidth
-        convertRect.size.height *= parentHeight
+        DispatchQueue.main.async {
+            let parentWidth = self.view.bounds.size.width
+            let parentHeight = self.view.bounds.size.height
+            var convertRect = self.regionOfInterest
+            print(parentWidth)
+
+            
+            print(self.regionOfInterest.size.width)
+            convertRect.origin.x = convertRect.origin.x * parentWidth
+            convertRect.origin.y *= parentHeight
+            convertRect.size.width = (convertRect.size.width * parentWidth)
+            convertRect.size.height *= parentHeight
+            print("Fucking dumb size is \(self.regionOfInterest)")
+            print("ConvertRect: \(convertRect)")
+            self.roiView = UIView(frame: convertRect)
+            self.roiView.layer.borderWidth = 2.5
+            self.roiView.layer.cornerRadius = 10
+            self.roiView.layer.borderColor = UIColor.systemBlue.cgColor
+            self.view.addSubview(self.roiView)
+            self.view.bringSubviewToFront(self.roiView)
+        }
         
-        roiView = UIView(frame: convertRect)
-        roiView.layer.borderWidth = 2.5
-        roiView.layer.cornerRadius = 10
-        roiView.layer.borderColor = UIColor.systemBlue.cgColor
-        view.addSubview(roiView)
-        view.bringSubviewToFront(roiView)
+        
 
         captureSession.startRunning()
     }
@@ -104,8 +112,8 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
             // vertical size the same (in buffer pixels). Also try to keep the
             // horizontal size the same up to a maximum ratio.
             let desiredHeightRatio = 0.10
-            let desiredWidthRatio = 0.4
-            let maxPortraitWidth = 0.7
+            let desiredWidthRatio = 0.6
+            let maxPortraitWidth = 0.68
             
             // Figure out size of ROI.
             let size: CGSize
