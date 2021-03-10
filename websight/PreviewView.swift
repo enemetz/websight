@@ -1,12 +1,11 @@
-//
-//  PreviewView.swift
-//  Linker
-//
-//  Created by Evan Nemetz on 7/18/19.
-//  Copyright © 2019 Evan Nemetz. All rights reserved.
-//
+/*
+See LICENSE folder for this sample’s licensing information.
+
+Abstract:
+Application preview view
+*/
+
 import UIKit
-import Foundation
 import AVFoundation
 
 class PreviewView: UIView {

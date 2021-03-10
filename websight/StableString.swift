@@ -51,7 +51,9 @@ extension String {
        [\ -./]?                # Potential separator
        (\w{4})\b                # Capture xxxx
        """#
+        
        let testPhone = NSPredicate(format:"SELF MATCHES %@", regularExpressionForPhone)
+       print(testPhone.evaluate(with: self))
        return testPhone.evaluate(with: self)
     }
     
@@ -110,7 +112,7 @@ class StringTracker {
     
     func getStableString() -> String? {
         // Require the recognizer to see the same string at least 10 times.
-        if bestCount >= 7 {
+        if bestCount >= 10 {
             return bestString
         } else {
             return nil
