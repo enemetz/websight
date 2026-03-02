@@ -25,6 +25,12 @@ body {
     margin-bottom: 0;
 }
 
+.masthead-logo {
+    height: 22px;
+    vertical-align: middle;
+    margin-left: 1px;
+}
+
 .nav-masthead .nav-link {
     padding: .25rem 0;
     font-weight: 700;
@@ -71,11 +77,11 @@ body {
 }
 
 .app-icon {
-    border-radius: 24px;
+    border-radius: 36px;
 }
 
 .mastfoot .inner {
-    border-radius: 16px;
+    border-radius: 18px;
 }
 
 .mastfoot .inner img {
