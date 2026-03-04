@@ -82,8 +82,17 @@ body {
 
 .mastfoot .inner {
     border-radius: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
 }
 
 .mastfoot .inner img {
     border-radius: 16px;
+}
+
+.made-in {
+    font-size: 10px;
+    color: black;
 }
